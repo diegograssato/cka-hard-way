@@ -34,9 +34,9 @@
   loop: "{{cluster.packages }}"
   when: cluster.install == '1'
  
-- name: Install Docker Module for Python
-  pip:
-    name: docker
+# - name: Install Docker Module for Python
+#   pip:
+#     name: docker
 
 - name: Add users to docker group.
   user:

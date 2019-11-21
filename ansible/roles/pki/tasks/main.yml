@@ -1,0 +1,170 @@
+- name: Create PKI directory
+  file:
+    path: '{{ PKI_DIR }}'
+    state: directory
+
+- name: Generate CA private key
+  openssl_privatekey:
+    path: '{{ PKI_DIR }}/ca.key'
+
+- name: Generate CA CSR
+  openssl_csr:
+    path: '{{ PKI_DIR }}/ca.csr'
+    privatekey_path: '{{ PKI_DIR }}/ca.key'
+    basic_constraints: "CA:TRUE"
+    basic_constraints_critical: True
+    key_usage: [cRLSign, keyCertSign]
+    key_usage_critical: True
+    organizational_unit_name: 'k8s the hard way'
+    common_name: KUBERNETES-CA
+
+- name: Generate CA certificate
+  openssl_certificate:
+    path: '{{ PKI_DIR }}/ca.crt'
+    privatekey_path: '{{ PKI_DIR }}/ca.key'
+    csr_path: '{{ PKI_DIR }}/ca.csr'
+    provider: selfsigned
+ 
+- name: Generate Private Certificate
+  openssl_privatekey:
+    path: '{{ PKI_DIR }}/{{item}}.key'
+  with_items:
+    - admin
+    - kube-controller-manager
+    - kube-proxy
+    - kube-scheduler
+    - service-account
+
+- name: Generate Controller Manager Client Certificate CSR
+  openssl_csr:
+    path: '{{ PKI_DIR }}/{{item.name}}.csr'
+    privatekey_path: '{{ PKI_DIR }}/{{item.name}}.key'
+    basic_constraints: "CA:FALSE"
+    basic_constraints_critical: True
+    key_usage: [ digitalSignature, keyEncipherment]
+    key_usage_critical: True
+    extended_key_usage: [serverAuth, clientAuth]
+    common_name: '{{item.name}}'
+    organization_name: '{{item.o}}'
+    organizational_unit_name: k8s the hard way
+  with_items:
+    - { name: kube-controller-manager, prefix: 'system:',      o: "system:kube-controller-manager" }
+    - { name: kube-proxy,              prefix: 'system:',      o: "system:node-proxier" }
+    - { name: kube-scheduler,          prefix: 'system:',      o: "system:kube-scheduler" }
+    - { name: service-account,         prefix: '',             o: Kubernetes }
+    - { name: admin,                   prefix: '',             o: "system:masters" }
+
+- name: Generate Client Certificates for admin, kube-controller-manager, kube-proxy, kube-scheduler, service-accounts
+  openssl_certificate:
+    path: '{{ PKI_DIR }}/{{item}}.crt'
+    csr_path: '{{ PKI_DIR }}/{{item}}.csr'
+    ownca_path: '{{ PKI_DIR }}/ca.crt'
+    ownca_privatekey_path: '{{ PKI_DIR }}/ca.key'
+    provider: ownca
+  with_items:
+    - admin
+    - kube-controller-manager
+    - kube-proxy
+    - kube-scheduler
+    - service-account
+
+- name: Retrieve internal master ip list from inventory
+  set_fact:
+    internal_master_ips: "{% for item in groups['management'] %}DNS:{{ hostvars[item].inventory_hostname }}.{{cluster.domain}},IP:{{ hostvars[item].ansible_host }}{{ ',' if not loop.last else ''}}{% endfor %}"
+
+- name: The internal master ip list
+  debug:
+    msg: "{{ internal_master_ips }}"
+
+
+- name: Generate etcd-erver private key
+  openssl_privatekey:
+    path: '{{ PKI_DIR }}/etcd-server.key'
+
+- name: Generate etcd-server CSR
+  openssl_csr:
+    path: '{{ PKI_DIR }}/etcd-server.csr'
+    privatekey_path: '{{ PKI_DIR }}/etcd-server.key'
+    common_name: 'etcd-server'
+    basic_constraints: "CA:FALSE"
+    basic_constraints_critical: True
+    key_usage: [ digitalSignature, keyEncipherment]
+    key_usage_critical: True
+    extended_key_usage: [ serverAuth, clientAuth ]
+    organization_name: 'etcd-server'
+    organizational_unit_name: 'k8s the hard way'
+    subject_alt_name: 'IP:127.0.0.1,DNS:localhost,{{ internal_master_ips }}'
+
+- name: Generate etcd-server certificate
+  openssl_certificate:
+    path: '{{ PKI_DIR }}/etcd-server.crt'
+    csr_path: '{{ PKI_DIR }}/etcd-server.csr'
+    ownca_path: '{{ PKI_DIR }}/ca.crt'
+    ownca_privatekey_path: '{{ PKI_DIR }}/ca.key'
+    provider: ownca    
+
+- name: Generate kube-apiserver private key
+  openssl_privatekey:
+    path: '{{ PKI_DIR }}/kube-apiserver.key'
+
+
+
+- name: Generate kube-apiserver CSR
+  openssl_csr:
+    path: '{{ PKI_DIR }}/kube-apiserver.csr'
+    privatekey_path: '{{ PKI_DIR }}/kube-apiserver.key'
+    common_name: 'kube-apiserver'
+    basic_constraints: "CA:FALSE"
+    basic_constraints_critical: True
+    key_usage: [ digitalSignature, keyEncipherment]
+    key_usage_critical: True
+    extended_key_usage: [ serverAuth, clientAuth ]
+    organization_name: 'kube-apiserver'
+    organizational_unit_name: 'k8s the hard way'
+    subject_alt_name: "DNS:kubernetes,DNS:kubernetes.default,DNS:kubernetes.default.svc,DNS:kubernetes.default.svc.cluster.local,DNS:cluster.local,{{ internal_master_ips }},IP:127.0.0.1,IP:{{ APISERVER_SERVICE_IP }}"
+
+- name: Generate kube-apiserver certificate
+  openssl_certificate:
+    path: '{{ PKI_DIR }}/kube-apiserver.crt'
+    csr_path: '{{ PKI_DIR }}/kube-apiserver.csr'
+    ownca_path: '{{ PKI_DIR }}/ca.crt'
+    ownca_privatekey_path: '{{ PKI_DIR }}/ca.key'
+    provider: ownca
+
+- name: Generate Workers private keys
+  openssl_privatekey:
+    path: '{{ PKI_DIR }}/{{ item }}.key'
+  loop: '{{ groups["workers"] }}'
+
+- name: Retrieve internal workers ip list from inventory
+  set_fact:
+    internal_workers_ips: "{% for item in groups['workers'] %}DNS:{{ hostvars[item].inventory_hostname }}.{{cluster.domain}},IP:{{ hostvars[item].ansible_host }}{{ ',' if not loop.last else ''}}{% endfor %}"
+
+- name: The internal workers ip list
+  debug:
+    msg: "{{ internal_workers_ips }}"
+
+
+- name: Generate Workers CSRs
+  openssl_csr:
+    path: '{{ PKI_DIR }}/{{ item }}.csr'
+    privatekey_path: '{{ PKI_DIR }}/{{ item }}.key'
+    common_name: 'system:node:{{ item }}'
+    basic_constraints: "CA:FALSE"
+    basic_constraints_critical: True
+    key_usage: [  digitalSignature, keyEncipherment]
+    key_usage_critical: True
+    extended_key_usage: [ serverAuth, clientAuth ]
+    organization_name: 'system:nodes'
+    organizational_unit_name: 'k8s the hard way'
+    subject_alt_name: '{{ internal_workers_ips }}'
+  loop: '{{ groups["workers"] }}'
+ 
+- name: Generate Workers certificate
+  openssl_certificate:
+    path: '{{ PKI_DIR }}/{{ item }}.crt'
+    csr_path: '{{ PKI_DIR }}/{{ item }}.csr'
+    ownca_path: '{{ PKI_DIR }}/ca.crt'
+    ownca_privatekey_path: '{{ PKI_DIR }}/ca.key'
+    provider: ownca
+  loop: '{{ groups["workers"] }}'

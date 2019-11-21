@@ -1,0 +1,20 @@
+# Implements https://github.com/kelseyhightower/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md
+
+# But first kubectl: https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-with-snap-on-ubuntu
+- name: Create kubeconfig directory
+  file:
+    path: '{{ CONF_DIR }}'
+    state: directory
+
+# Represents the files created with `kubectl config`
+- name: Template all kubeconfig files
+  template:
+    src: kubeconfig.yaml.j2
+    dest: '{{ CONF_DIR }}/{{ item.name }}.kubeconfig'
+  with_items:
+    - { name: worker-1,                prefix: 'system:node:', server: "{{ groups['loadbalancer'][0] }}" }
+    - { name: worker-2,                prefix: 'system:node:', server: "{{ groups['loadbalancer'][0] }}" }
+    - { name: kube-proxy,              prefix: 'system:',      server: "{{ groups['loadbalancer'][0] }}" }
+    - { name: kube-controller-manager, prefix: 'system:',      server: '127.0.0.1' }
+    - { name: kube-scheduler,          prefix: 'system:',      server: '127.0.0.1' }
+    - { name: admin,                   prefix: '',             server: '127.0.0.1' }
