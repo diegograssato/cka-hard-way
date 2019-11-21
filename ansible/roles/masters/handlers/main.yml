@@ -1,0 +1,10 @@
+- name: restart masters
+  systemd:
+    name: "{{ item }}"
+    daemon_reload: yes
+    enabled: yes
+    state: restarted
+  with_items:
+    - kube-apiserver
+    - kube-controller-manager
+    - kube-scheduler

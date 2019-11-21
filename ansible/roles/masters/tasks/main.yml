@@ -1,0 +1,62 @@
+
+- name: Copy binaries
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/bin/
+    owner: root
+    group: root
+    mode: 0554
+  loop:
+    - '{{ BIN_DIR }}/kube-apiserver'
+    - '{{ BIN_DIR }}/kube-controller-manager'
+    - '{{ BIN_DIR }}/kube-scheduler'
+
+- name: Create config directory
+  file:
+    path: /var/lib/kubernetes
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Copy certificates and keys
+  copy:
+    src: "{{ item }}"
+    dest: /var/lib/kubernetes/
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - '{{ PKI_DIR }}/ca.pem'
+    - '{{ PKI_DIR }}/ca-key.pem'
+    - '{{ PKI_DIR }}/master.pem'
+    - '{{ PKI_DIR }}/master-key.pem'
+    - '{{ PKI_DIR }}/encryption-config.yml'
+
+- name: Copy systemd unit file
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0644
+  with_items: 
+    - { src: "lib/systemd/system/kube-apiserver.service.j2"          , dest: "/lib/systemd/system/kube-apiserver.service" }
+    - { src: "lib/systemd/system/kube-controller-manager.service.j2" , dest: "/lib/systemd/system/kube-controller-manager.service" }
+    - { src: "lib/systemd/system/kube-scheduler.service.j2"          , dest: "/lib/systemd/system/kube-scheduler.service" }
+  notify:
+    - restart masters
+  tags:
+    - config
+
+- meta: flush_handlers
+
+# - name: Configure RBAC for kubelet authorization
+#   run_once: yes
+#   local_action: shell kubectl apply -f roles/masters/templates/rbac-conf/rbac.yml
+#   become_user: "{{ lookup('env','USER') }}"
+#   register: rbac_conf
+#   until: rbac_conf.stderr == ''
+#   retries: 3
+#   delay: 10
+ 

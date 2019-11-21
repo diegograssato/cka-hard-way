@@ -1,0 +1,22 @@
+[masters]
+master-1 ansible_host=10.1.2.10 ansible_external_host=192.168.2.20 ansible_user=ubuntu ansible_cpu=3 ansible_mem=2048 ansible_disk=20 ansible_password=root ansible_port=22
+master-2 ansible_host=10.1.2.11 ansible_external_host=192.168.2.21 ansible_user=ubuntu ansible_cpu=3 ansible_mem=2048 ansible_disk=20 ansible_password=root ansible_port=22
+
+[workers]
+worker-1 ansible_host=10.1.2.20 ansible_external_host=192.168.2.22 ansible_user=ubuntu ansible_cpu=3 ansible_mem=2048 ansible_disk=20 ansible_password=root ansible_port=22
+worker-2 ansible_host=10.1.2.21 ansible_external_host=192.168.2.23 ansible_user=ubuntu ansible_cpu=3 ansible_mem=2048 ansible_disk=20 ansible_password=root ansible_port=22
+
+[loadbalancer]
+lb ansible_host=10.1.2.100 ansible_external_host=192.168.2.100 ansible_user=ubuntu ansible_cpu=3 ansible_mem=2048 ansible_disk=20 ansible_password=root ansible_port=22
+ 
+
+[cluster:children]
+masters
+workers
+
+[management:children]
+masters
+loadbalancer
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3

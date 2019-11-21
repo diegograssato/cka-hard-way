@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+#--client-ca-file=/var/lib/kubernetes/ca.pem \
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+
+[Service]
+ExecStart=/usr/local/bin/kubelet \
+  --container-runtime=docker \
+  --config=/var/lib/kubelet/kubelet-config.yaml \
+  --image-pull-progress-deadline=2m \
+  --kubeconfig=/var/lib/kubelet/{{ ansible_hostname }}.kubeconfig \
+  --node-ip={{ ansible_host }} \
+  --register-node=true \
+  --tls-cert-file=/var/lib/kubelet/{{ ansible_hostname }}.pem \
+  --tls-private-key-file=/var/lib/kubelet/{{ ansible_hostname }}-key.pem \
+  --v=2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

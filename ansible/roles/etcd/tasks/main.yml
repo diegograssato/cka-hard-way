@@ -1,0 +1,64 @@
+- name: Copy etcd binaries 
+  copy:
+    src: '{{ BIN_DIR }}/etcd'
+    dest: /usr/local/bin/
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Copy etcdctl binaries 
+  copy:
+    src: '{{ BIN_DIR }}/etcdctl'
+    dest: /usr/local/bin/
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create config directory
+  file:
+    path: /etc/etcd
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Create etcd user
+  user: 
+    name: etcd
+    shell: /usr/sbin/nologin
+    comment: "etcd user"
+    createhome: no
+    system: yes
+    state: present
+
+- name: Create /var/lib/etcd directory
+  file:
+    path: /var/lib/etcd
+    state: directory
+    owner: etcd
+    group: etcd
+    mode: 0755
+
+- name: Copy certificates and keys    
+  copy:
+    src: "{{ item }}"
+    dest: /etc/etcd
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - '{{ PKI_DIR }}/ca.pem'
+    - '{{ PKI_DIR }}/master-key.pem'
+    - '{{ PKI_DIR }}/master.pem'
+
+- name: Copy systemd unit file
+  template:
+    src: "lib/systemd/system/etcd.service.j2"
+    dest: "/lib/systemd/system/etcd.service"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart etcd
+  tags:
+    - config   

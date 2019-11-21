@@ -1,0 +1,65 @@
+---
+# - hosts: cluster
+#   become: yes
+#   vars_files:
+#     - vars/all.yml
+#   roles:
+#     - cluster
+
+# - name: Create the PKI
+#   hosts: localhost
+#   vars_files:
+#     - vars/all.yml  
+#   connection: local
+#   roles:
+#     - pki
+
+# - name: Generate the Kubeconfig files
+#   hosts: localhost
+#   connection: local
+#   vars_files:
+#     - vars/all.yml  
+#   roles:
+#     - kubeconfig
+
+
+# - name: Download the k8s components
+#   hosts: localhost
+#   connection: local
+#   vars_files:
+#     - vars/all.yml    
+#   roles:
+#     - binaries
+
+# - name: Deploy loadbalancer
+#   hosts: loadbalancer
+#   become: yes
+#   vars_files:
+#     - vars/all.yml     
+#   roles:
+#     - loadbalancer
+
+
+- name: Deploy Etcd cluster
+  hosts: masters
+  become: yes
+  vars_files:
+    - vars/all.yml     
+  roles:
+    - etcd    
+
+# - name: Deploy k8s master components
+#   hosts: masters
+#   become: yes
+#   vars_files:
+#     - vars/all.yml
+#   roles:
+#     - masters
+
+- name: Deploy k8s worker components
+  hosts: workers
+  become: yes
+  vars_files:
+    - vars/all.yml  
+  roles:
+    - workers

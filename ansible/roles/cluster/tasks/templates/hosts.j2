@@ -1,0 +1,29 @@
+
+# {{ ansible_managed }}
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+
+10.1.2.1    controller  controller.{{cluster.domain}}
+
+# K8S cluster - {{ ansible_managed }}
+{% for item in ansible_play_batch %}
+{%- if item != 'localhost' %}
+{{ hostvars[item].ansible_host }}   {{item}}   {{item}}.{{cluster.domain}}
+{% endif %}
+{% endfor %}
+
+# External access for K8S cluster - {{ ansible_managed }}
+{% for item in ansible_play_batch %}
+{%- if hostvars[item].ansible_external_host is defined %}
+{{ hostvars[item].ansible_external_host }}   {{item}}   {{item}}.{{cluster.domain}}
+{% endif %}
+{% endfor %}
+
+
+# The following lines are desirable for IPv6 capable hosts - {{ ansible_managed }}
+::1 ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+ff02::3 ip6-allhosts

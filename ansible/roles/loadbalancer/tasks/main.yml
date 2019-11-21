@@ -1,0 +1,32 @@
+- name: Install nginx
+  apt:
+    name: nginx
+    state: latest
+    update_cache: yes
+
+- name: Configure nginx
+  blockinfile:
+    path: /etc/nginx/nginx.conf
+    block: |
+      stream {
+          upstream k8s-api {
+          {% for host in groups['masters'] %}
+            server {{ host }}:6443;
+          {% endfor %}
+          }
+          upstream etcd {
+          {% for host in groups['masters'] %}
+            server {{ host }}:2379;
+          {% endfor %}
+          }	
+          server {
+                listen 6443;
+                proxy_pass k8s-api;
+          }
+          server {
+                listen 2379;
+                proxy_pass etcd;
+          }
+      }
+  notify:
+    - reload nginx

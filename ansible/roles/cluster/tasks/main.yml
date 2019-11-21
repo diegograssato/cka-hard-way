@@ -1,0 +1,85 @@
+---
+# application tasks to be customized and to run after the main provision
+- name: Add IP address of all hosts to all hosts
+  template: src=templates/hosts.j2 dest=/etc/hosts force=yes backup=yes owner=root group=root mode="0644"
+
+- name: Configure the timezone
+  become: yes
+  template: src=timezone.j2 dest=/etc/timezone backup=yes owner=root group=root mode="0644"
+
+- name: Configure locatime
+  become: yes
+  file: src=/usr/share/zoneinfo/{{cluster.timezone}} dest=/etc/localtime state=link force=yes backup=yes owner=root group=root mode="0644"
+
+- name: Set default system language pack
+  shell: locale-gen {{cluster.locale}}
+  become: yes
+
+- name: Install aptitude using apt
+  apt: name=aptitude state=latest update_cache=yes force_apt_get=yes
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+ 
+- name: Add Docker APT repository
+  apt_repository:
+    state: present
+    repo: deb [arch=amd64] https://download.docker.com/linux/{{ansible_distribution|lower}} {{ansible_distribution_release}} stable
+    
+- name: Update apt and install docker-ce
+  become: yes
+  apt: name={{ item }} state=latest update_cache=yes
+  loop: "{{cluster.packages }}"
+  when: cluster.install == '1'
+ 
+- name: Install Docker Module for Python
+  pip:
+    name: docker
+
+- name: Add users to docker group.
+  user:
+    name: "{{ item }}"
+    groups: docker
+    append: yes
+  loop: "{{cluster.users}}"
+
+ # Set ip forwarding on in /proc and in the sysctl file and reload if necessary
+- name: Set ip forwarding on in /proc and in the sysctl file and reload if necessary
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes
+ 
+- name: Set net.bridge.bridge-nf-call-iptables on in /proc and in the sysctl file and reload if necessary 
+  sysctl:
+    name: net.bridge.bridge-nf-call-iptables
+    value: '1'
+    sysctl_set: yes
+    state: present
+    reload: yes 
+ 
+- name: "Check if known_hosts contains server's fingerprint"
+  command: "ssh-keyscan {{item}}"
+  register: known_host_keys
+  loop: "{{ansible_play_batch}}"
+
+
+- name: Fetch remote ssh key
+  known_hosts:
+    name: "{{item.item}}"
+    key: "{{item.stdout}}"
+    path: ~/.ssh/known_hosts
+    state: present
+  loop: "{{known_host_keys.results}}"
+
+
+# - name: Add ssh keys
+#   authorized_key:
+#     user: "{{ item }}"
+#     state: present
+#     key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"  
+#   loop: "{{cluster.docker-users}}"

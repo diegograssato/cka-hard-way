@@ -1,0 +1,44 @@
+# {{ ansible_managed }}
+
+[Unit]
+Description=etcd
+Documentation=https://github.com/coreos
+
+[Service]
+Type=notify
+User=etcd
+Group=etcd
+ExecStart=/usr/local/bin/etcd \
+  --name  {{ ansible_hostname }} \
+  --cert-file=/etc/etcd/master.pem \
+  --key-file=/etc/etcd/master-key.pem \
+  --peer-cert-file=/etc/etcd/master.pem \
+  --peer-key-file=/etc/etcd/master-key.pem \
+  --trusted-ca-file=/etc/etcd/ca.pem \
+  --peer-trusted-ca-file=/etc/etcd/ca.pem \
+  --peer-client-cert-auth \
+  --client-cert-auth \
+  --initial-advertise-peer-urls https://{{ ansible_host }}:2380 \
+  --listen-peer-urls https://{{ ansible_host }}:2380,http://127.0.0.1:2380 \
+  --listen-client-urls https://{{ ansible_host }}:2379,http://127.0.0.1:2379 \
+  --advertise-client-urls https://{{ ansible_host }}:2379 \
+  --initial-cluster-token etcd-cluster-0 \
+  --initial-cluster {% for item in groups['masters'] %}{{ hostvars[item].inventory_hostname }}=https://{{ hostvars[item].ansible_host }}:2380{{ "," if not loop.last else ""}}{% endfor %} \
+  --initial-cluster-state new \
+  --data-dir=/var/lib/etcd
+Restart=on-failure
+RestartSec=5
+ProtectSystem=full
+ReadWritePaths=/var/lib/etcd 
+PrivateTmp=true
+ProtectHome=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+NoNewPrivileges=true
+LimitNOFILE=40000
+
+
+[Install]
+WantedBy=multi-user.target
