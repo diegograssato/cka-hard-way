@@ -51,14 +51,50 @@
     - '{{ PKI_DIR }}/etcd-server.key'
     - '{{ PKI_DIR }}/etcd-server.crt'
 
-- name: Copy systemd unit file
-  template:
-    src: "lib/systemd/system/etcd.service.j2"
-    dest: "/lib/systemd/system/etcd.service"
-    owner: root
-    group: root
-    mode: 0644
-  notify:
-    - restart etcd
+# - name: Copy systemd unit file
+#   template:
+#     src: "lib/systemd/system/etcd.service.j2"
+#     dest: "/lib/systemd/system/etcd.service"
+#     owner: root
+#     group: root
+#     mode: 0644
+#   notify:
+#     - restart etcd
+#   tags:
+#     - config
+
+- name: Check etcd endpoint health
+  shell: ETCDCTL_API=3 etcdctl --cert=/etc/etcd/etcd-server.crt --key=/etc/etcd/etcd-server.key --cacert=/etc/etcd/ca.crt --endpoints='{% for item in groups['masters'] %}https://{{ hostvars[item].ansible_host }}:2379{{ "," if not loop.last else ""}}{% endfor %}' endpoint health
+  register: endpointHealth
   tags:
-    - config   
+    - etc-status
+
+- name: Check etcd member list
+  shell: ETCDCTL_API=3 etcdctl --cert=/etc/etcd/etcd-server.crt --key=/etc/etcd/etcd-server.key --cacert=/etc/etcd/ca.crt --endpoints='{% for item in groups['masters'] %}https://{{ hostvars[item].ansible_host }}:2379{{ "," if not loop.last else ""}}{% endfor %}' member list
+  register: memberList
+  tags:
+    - etc-status
+
+- name: Check etcd cluster-health
+  shell: etcdctl --cert-file=/etc/etcd/etcd-server.crt  --key-file=/etc/etcd/etcd-server.key --ca-file=/etc/etcd/ca.crt --peers='{% for item in groups['masters'] %}https://{{ hostvars[item].ansible_host }}:2379{{ "," if not loop.last else ""}}{% endfor %}' cluster-health
+  register: clusterhealth
+  tags:
+    - etc-status
+
+- name: Check etcd cluster endpoint health
+  tags:
+    - etc-status
+  debug:
+    msg: "{{ endpointHealth['stderr_lines'] }}"
+
+- name: Check etcd cluster member list
+  tags:
+    - etc-status
+  debug:
+    msg: "{{ memberList['stdout_lines'] }}"
+
+- name: Check etcd cluster-health
+  tags:
+    - etc-status
+  debug:
+    msg: "{{ clusterhealth['stdout_lines'] }}"
