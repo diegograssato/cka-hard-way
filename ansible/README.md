@@ -15,11 +15,15 @@ ansible-playbook -i inventories/hosts playbook.yml --tags etc-status
 
 ### Todo List
 
-- [x] Cluster ETCD
-- [x] ETCD check list
-- [ ] Configure masters
+- [x] Bootstrapping the etcd Cluster
+- [x] Verification the etcd Cluster
+- [x] Configure clients
+- [x] Generating the Data Encryption Config and Key
+- [ ] Bootstrapping the Kubernetes Control Plane
 - [ ] Configure workers
 - [ ] Configure load-balance
+- [ ] Check if exists kvm images, if not exist download
+- [ ] Check if exists kvm bios, if not exist download bios
 
 
 ### User guide

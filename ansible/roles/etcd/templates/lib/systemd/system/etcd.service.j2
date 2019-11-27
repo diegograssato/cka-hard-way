@@ -9,7 +9,7 @@ Type=notify
 User=etcd
 Group=etcd
 ExecStart=/usr/local/bin/etcd \
-  --name  {{ ansible_hostname }} \
+  --name {{ ansible_hostname }} \
   --cert-file=/etc/etcd/etcd-server.crt \
   --key-file=/etc/etcd/etcd-server.key \
   --peer-cert-file=/etc/etcd/etcd-server.crt \

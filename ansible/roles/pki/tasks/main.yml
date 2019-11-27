@@ -168,3 +168,8 @@
     ownca_privatekey_path: '{{ PKI_DIR }}/ca.key'
     provider: ownca
   loop: '{{ groups["workers"] }}'
+
+- name: Generate encryption-config.yml
+  shell: echo "{{ encryption_config }}" > {{ PKI_DIR }}/encryption-config.yml
+  args:
+    creates: '{{ PKI_DIR }}/encryption-config.yml'  

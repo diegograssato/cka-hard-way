@@ -51,17 +51,16 @@
     - '{{ PKI_DIR }}/etcd-server.key'
     - '{{ PKI_DIR }}/etcd-server.crt'
 
-# - name: Copy systemd unit file
-#   template:
-#     src: "lib/systemd/system/etcd.service.j2"
-#     dest: "/lib/systemd/system/etcd.service"
-#     owner: root
-#     group: root
-#     mode: 0644
-#   notify:
-#     - restart etcd
-#   tags:
-#     - config
+
+- name: Copy systemd unit file
+  template:
+    src: "lib/systemd/system/etcd.service.j2"
+    dest: "/lib/systemd/system/etcd.service"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - restart etcd
 
 - name: Check etcd endpoint health
   shell: ETCDCTL_API=3 etcdctl --cert=/etc/etcd/etcd-server.crt --key=/etc/etcd/etcd-server.key --cacert=/etc/etcd/ca.crt --endpoints='{% for item in groups['masters'] %}https://{{ hostvars[item].ansible_host }}:2379{{ "," if not loop.last else ""}}{% endfor %}' endpoint health

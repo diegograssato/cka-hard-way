@@ -10,6 +10,7 @@
     - '{{ BIN_DIR }}/kube-apiserver'
     - '{{ BIN_DIR }}/kube-controller-manager'
     - '{{ BIN_DIR }}/kube-scheduler'
+    - '{{ BIN_DIR }}/kubectl'
 
 - name: Create config directory
   file:
@@ -22,16 +23,52 @@
 - name: Copy certificates and keys
   copy:
     src: "{{ item }}"
-    dest: /var/lib/kubernetes/
+    dest: /var/lib/kubernetes
     owner: root
     group: root
     mode: 0644
   loop:
-    - '{{ PKI_DIR }}/ca.pem'
-    - '{{ PKI_DIR }}/ca-key.pem'
-    - '{{ PKI_DIR }}/master.pem'
-    - '{{ PKI_DIR }}/master-key.pem'
+    - '{{ PKI_DIR }}/ca.crt'
+    - '{{ PKI_DIR }}/ca.key'
+    - '{{ PKI_DIR }}/kube-apiserver.crt'
+    - '{{ PKI_DIR }}/kube-apiserver.key'
+    - '{{ PKI_DIR }}/service-account.key'
+    - '{{ PKI_DIR }}/service-account.crt'
+    - '{{ PKI_DIR }}/etcd-server.key'
+    - '{{ PKI_DIR }}/etcd-server.crt'  
     - '{{ PKI_DIR }}/encryption-config.yml'
+
+- name: Copy certificates and keys
+  copy:
+    src: "{{ item }}"
+    dest: /var/lib/kubernetes
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - '{{ CONF_DIR }}/kube-scheduler.kubeconfig'
+    - '{{ CONF_DIR }}/kube-controller-manager.kubeconfig'
+    - '{{ CONF_DIR }}/admin.kubeconfig'
+
+- name: Copy certificates and keys
+  copy:
+    src: "{{ item }}"
+    dest: /var/lib/kubernetes
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - '{{ PKI_DIR }}/ca.crt'
+    - '{{ PKI_DIR }}/ca.key'
+    - '{{ PKI_DIR }}/kube-apiserver.crt'
+    - '{{ PKI_DIR }}/kube-apiserver.key'
+    - '{{ PKI_DIR }}/service-account.key'
+    - '{{ PKI_DIR }}/service-account.crt'
+    - '{{ PKI_DIR }}/etcd-server.key'
+    - '{{ PKI_DIR }}/etcd-server.crt'  
+    - '{{ PKI_DIR }}/encryption-config.yml'
+
+
 
 - name: Copy systemd unit file
   template:
@@ -50,13 +87,20 @@
     - config
 
 - meta: flush_handlers
+- name: Copy rbac aconf
+  copy:
+    src: "{{ item }}"
+    dest: /var/lib/kubernetes
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - 'roles/masters/templates/rbac-conf/rbac.yml'
 
-# - name: Configure RBAC for kubelet authorization
-#   run_once: yes
-#   local_action: shell kubectl apply -f roles/masters/templates/rbac-conf/rbac.yml
-#   become_user: "{{ lookup('env','USER') }}"
-#   register: rbac_conf
-#   until: rbac_conf.stderr == ''
-#   retries: 3
-#   delay: 10
+- name: Configure RBAC for kubelet authorization
+  shell:  kubectl --kubeconfig /var/lib/kubernetes/admin.kubeconfig apply -f /var/lib/kubernetes/rbac.yml
+  become: yes
+  register: rbac_conf
+  retries: 3
+  delay: 10
  
