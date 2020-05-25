@@ -3,38 +3,38 @@
 - name: Add IP address of all hosts to all hosts
   template: src=templates/hosts.j2 dest=/etc/hosts force=yes backup=yes owner=root group=root mode="0644"
 
-- name: Configure the timezone
-  become: yes
-  template: src=timezone.j2 dest=/etc/timezone backup=yes owner=root group=root mode="0644"
+# - name: Configure the timezone
+#   become: yes
+#   template: src=timezone.j2 dest=/etc/timezone backup=yes owner=root group=root mode="0644"
 
-- name: Configure locatime
-  become: yes
-  file: src=/usr/share/zoneinfo/{{cluster.timezone}} dest=/etc/localtime state=link force=yes backup=yes owner=root group=root mode="0644"
+# - name: Configure locatime
+#   become: yes
+#   file: src=/usr/share/zoneinfo/{{cluster.timezone}} dest=/etc/localtime state=link force=yes backup=yes owner=root group=root mode="0644"
 
-- name: Set default system language pack
-  shell: locale-gen {{cluster.locale}}
-  become: yes
+# - name: Set default system language pack
+#   shell: locale-gen {{cluster.locale}}
+#   become: yes
 
-- name: Install aptitude using apt
-  apt: name=aptitude state=latest update_cache=yes force_apt_get=yes
+# - name: Install aptitude using apt
+#   apt: name=aptitude state=latest update_cache=yes force_apt_get=yes
 
-- name: Add Docker GPG apt Key
-  apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
+# - name: Add Docker GPG apt Key
+#   apt_key:
+#     url: https://download.docker.com/linux/ubuntu/gpg
+#     state: present
  
-- name: Add Docker APT repository
-  apt_repository:
-    state: present
-    repo: deb [arch=amd64] https://download.docker.com/linux/{{ansible_distribution|lower}} {{ansible_distribution_release}} stable
+# - name: Add Docker APT repository
+#   apt_repository:
+#     state: present
+#     repo: deb [arch=amd64] https://download.docker.com/linux/{{ansible_distribution|lower}} {{ansible_distribution_release}} stable
     
-- name: Update apt and install docker-ce
-  become: yes
-  apt: name={{ item }} state=latest update_cache=yes
-  loop: "{{cluster.packages }}"
-  when: cluster.install == '1'
+# - name: Update apt and install docker-ce
+#   become: yes
+#   apt: name={{ item }} state=latest update_cache=yes
+#   loop: "{{cluster.packages }}"
+#   when: cluster.install == '1'
 
-# Descomentar quando fizer a parte dos workers
+#Descomentar quando fizer a parte dos workers
 # - name: Install Docker Module for Python
 #   pip:
 #     name: docker

@@ -14,13 +14,13 @@
 #   roles:
 #     - pki
 
-# - name: Generate the Kubeconfig files
-#   hosts: localhost
-#   connection: local
-#   vars_files:
-#     - vars/all.yml  
-#   roles:
-#     - configurationfiles
+- name: Generate the Kubeconfig files
+  hosts: localhost
+  connection: local
+  vars_files:
+    - vars/all.yml  
+  roles:
+    - configurationfiles
 
 
 # - name: Download the k8s components
@@ -48,18 +48,18 @@
   roles:
     - etcd    
 
-- name: Deploy k8s master components
-  hosts: masters
-  become: yes
-  vars_files:
-    - vars/all.yml
-  roles:
-    - masters
-
-# - name: Deploy k8s worker components
-#   hosts: workers
+# - name: Deploy k8s master components
+#   hosts: masters
 #   become: yes
 #   vars_files:
-#     - vars/all.yml  
+#     - vars/all.yml
 #   roles:
-#     - workers
+#     - masters
+
+- name: Deploy k8s worker components
+  hosts: workers
+  become: yes
+  vars_files:
+    - vars/all.yml  
+  roles:
+    - workers

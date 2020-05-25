@@ -8,7 +8,9 @@
 # K8S cluster - {{ ansible_managed }}
 {% for item in ansible_play_batch %}
 {%- if item != 'localhost' %}
+{%- if hostvars[item].ansible_host is defined %}
 {{ hostvars[item].ansible_host }}   {{item}}   {{item}}.{{cluster.domain}}
+{% endif %}
 {% endif %}
 {% endfor %}
 

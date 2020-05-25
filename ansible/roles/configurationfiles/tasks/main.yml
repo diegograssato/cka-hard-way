@@ -12,9 +12,9 @@
     src: kubeconfig.yaml.j2
     dest: '{{ CONF_DIR }}/{{ item.name }}.kubeconfig'
   with_items:
-    - { name: worker-1,                prefix: 'system:node:', server: "{{ groups['loadbalancer'][0] }}" }
-    - { name: worker-2,                prefix: 'system:node:', server: "{{ groups['loadbalancer'][0] }}" }
-    - { name: kube-proxy,              prefix: 'system:',      server: "{{ groups['loadbalancer'][0] }}" }
+    - { name: worker-1,                prefix: 'system:node:', server: "{{ groups['loadbalancer'][0] }}.{{cluster.domain}}" }
+    - { name: worker-2,                prefix: 'system:node:', server: "{{ groups['loadbalancer'][0] }}.{{cluster.domain}}" }
+    - { name: kube-proxy,              prefix: 'system:',      server: "{{ groups['loadbalancer'][0] }}.{{cluster.domain}}" }
     - { name: kube-controller-manager, prefix: 'system:',      server: '127.0.0.1' }
     - { name: kube-scheduler,          prefix: 'system:',      server: '127.0.0.1' }
     - { name: admin,                   prefix: '',             server: '127.0.0.1' }

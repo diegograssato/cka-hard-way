@@ -1,0 +1,31 @@
+---
+- hosts: all
+  become: yes
+  vars_files:
+    - vars/all.yml 
+  roles:
+    - commons
+
+- name: Configurando Managers
+  become: yes
+  vars_files:
+    - vars/all.yml 
+  hosts: managers
+  roles:
+    - managers
+  tasks:
+    - name: "Docker Swarm visualization"
+      include_role:
+        name: visualization
+      when: "additional_features.visualization"
+      run_once: yes
+      tags: visualization
+
+
+- name: Configurando Workers
+  become: yes
+  vars_files:
+    - vars/all.yml 
+  hosts: workers
+  roles:
+  - workers

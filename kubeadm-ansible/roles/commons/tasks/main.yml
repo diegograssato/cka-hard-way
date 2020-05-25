@@ -1,0 +1,142 @@
+---
+- name: Disable system swap
+  shell: "swapoff -a"
+
+- name: Remove current swaps from fstab
+  lineinfile:
+    dest: /etc/fstab
+    regexp: '(?i)^([^#][\S]+\s+(none|swap)\s+swap.*)'
+    line: '# \1'
+    backrefs: yes
+    state: present 
+
+# application tasks to be customized and to run after the main provision
+- name: Add IP address of all hosts to all hosts
+  template: src=templates/hosts.j2 dest=/etc/hosts force=yes backup=yes owner=root group=root mode="0644"
+
+- name: Configure the timezone
+  become: yes
+  template: src=timezone.j2 dest=/etc/timezone backup=yes owner=root group=root mode="0644"
+
+- name: Configure locatime
+  become: yes
+  file: src=/usr/share/zoneinfo/{{commons.timezone}} dest=/etc/localtime state=link force=yes backup=yes owner=root group=root mode="0644"
+
+- name: Set default system language pack
+  shell: locale-gen {{commons.locale}}
+  become: yes
+
+- name: Install aptitude using apt
+  apt: name=aptitude state=latest update_cache=yes force_apt_get=yes
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker APT repository
+  apt_repository:
+    state: present
+    repo: deb [arch=amd64] https://download.docker.com/linux/{{ansible_distribution|lower}} {{ansible_distribution_release}} stable
+
+
+- name: Add Kubernetes apt-key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: Add Kubernetes' APT repository
+  apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+    filename: 'kubernetes'
+
+- name: Update apt and install dependencies
+  become: yes
+  apt: name={{ item }} state=latest update_cache=yes
+  loop: "{{commons.packages }}"
+  when: commons.install == '1'
+ 
+- name: Install Docker Module for Python
+  pip:
+    name: docker
+
+- name: Disable swappiness and pass bridged IPv4 traffic to iptable's chains
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+  with_items:
+    - { name: 'vm.swappiness', value: '0' }
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name:  'net.ipv4.ip_forward', value: '1' }
+
+
+- name: "Check if known_hosts contains server's fingerprint"
+  command: "ssh-keyscan {{item}}"
+  register: known_host_keys
+  loop: "{{ansible_play_batch}}"
+
+
+- name: Fetch remote ssh key
+  known_hosts:
+    name: "{{item.item}}"
+    key: "{{item.stdout}}"
+    path: ~/.ssh/known_hosts
+    state: present
+  loop: "{{known_host_keys.results}}"
+
+# - name: Generate /etc/hosts file
+#   become: yes
+#   become_user: root
+#   tags: etc_hosts
+#   template:
+#     src=templates/hosts.j2
+#     dest=/etc/hosts
+    
+# - name: Update apt
+#   become: yes
+#   apt: update_cache=yes
+
+# - name: Install System Packages
+#   become: yes
+#   apt: pkg={{ item }} state=latest
+#   with_items:
+#     - curl
+#     - wget
+#     - python-software-properties
+
+# - name: Configure the timezone
+#   become: yes
+#   template: src=timezone.tpl dest=/etc/timezone
+
+# - name: More Configure the timezone
+#   become: yes
+#   file: src=/usr/share/zoneinfo/{{commons.timezone}} dest=/etc/localtime state=link force=yes backup=yes
+
+# - name: Set default system language pack
+#   shell: locale-gen {{commons.locale}}
+#   become: yes
+
+# - name: Add Kubernetes apt-key
+#   apt_key:
+#     url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+#     state: present
+
+# - name: Add Kubernetes' APT repository
+#   apt_repository:
+#     repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+#     state: present
+#     filename: 'kubernetes'
+
+# - name: Update apt
+#   become: yes
+#   apt: update_cache=yes
+
+# - name: Install Packages
+#   become: yes
+#   apt: pkg={{ item }} state=latest
+#   with_items: "{{ commons.packages }}"
+#   when: commons.packages is defined
+ 
+- include: configure.yml 

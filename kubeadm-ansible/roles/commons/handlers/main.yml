@@ -1,0 +1,6 @@
+---
+- name: restart udevd
+  service: name=systemd-udevd enabled=yes state=restarted
+
+- name: restart docker
+  service: name=docker enabled=yes state=restarted

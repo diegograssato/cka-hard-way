@@ -3,7 +3,7 @@
 #ISO="${IMAGES}/CentOS-6-x86_64-GenericCloud.qcow2"
 #ISO="${IMAGES}/CentOS-7-x86_64-GenericCloud.qcow2"
 #https://cloud-images.ubuntu.com/releases/disco/release/ubuntu-19.04-server-cloudimg-amd64.img
-_ISO=ubuntu-19.04-server-cloudimg-amd64.img
+_ISO=ubuntu-20.04-server-cloudimg-amd64.img
 _INVENTORIES_FILE="$(pwd)/inventories/hosts" 
 
 DOMAIN="dtux.lan"
@@ -62,8 +62,8 @@ runcmd:
    - [ apt-get, -y, remove, cloud-init ]
    
    
-package_update: true
-package_upgrade: true
+package_update: false
+package_upgrade: false
 
 final_message: "The cluster system is finally up"  
 

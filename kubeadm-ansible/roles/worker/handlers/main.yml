@@ -1,0 +1,4 @@
+---
+- name: restart udevd
+  service: name=systemd-udevd enabled=yes state=restarted
+ 

@@ -1,8 +1,20 @@
-- name: Install socat
-  apt:
-    name: socat
-    state: latest
-    update_cache: yes
+- name: Update apt and install docker-ce
+  become: yes
+  apt: name={{ item }} state=latest update_cache=yes
+  loop: "{{cluster.workers }}"
+  when: cluster.install == '1'
+
+
+- name: Install Docker Module for Python
+  pip:
+    name: docker
+
+- name: Add users to docker group.
+  user:
+    name: "{{ item }}"
+    groups: docker
+    append: yes
+  loop: "{{cluster.users}}"
 
 - name: Create config directories
   file:
@@ -36,9 +48,10 @@
     group: root
     mode: 0644
   with_items:
-    - { src: "{{ PKI_DIR }}/ca.pem"                             , dest: "/var/lib/kubernetes/" }
-    - { src: "{{ PKI_DIR }}/{{ ansible_hostname }}.pem"         , dest: "/var/lib/kubelet/" }
-    - { src: "{{ PKI_DIR }}/{{ ansible_hostname }}-key.pem"     , dest: "/var/lib/kubelet/" }
+    - { src: "{{ PKI_DIR }}/ca.crt"                             , dest: "/var/lib/kubernetes/" }
+    - { src: "{{ PKI_DIR }}/{{ ansible_hostname }}.crt"         , dest: "/var/lib/kubelet/" }
+    - { src: "{{ PKI_DIR }}/{{ ansible_hostname }}.key"     , dest: "/var/lib/kubelet/" }
+    - { src: "{{ CONF_DIR }}/{{ ansible_hostname }}.kubeconfig" , dest: "/var/lib/kubelet/" }
     - { src: "{{ CONF_DIR }}/{{ ansible_hostname }}.kubeconfig" , dest: "/var/lib/kubelet/" }
     - { src: "{{ CONF_DIR }}/kube-proxy.kubeconfig"             , dest: "/var/lib/kube-proxy/kubeconfig"}
 

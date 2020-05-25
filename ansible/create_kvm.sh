@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
  
 # Directory to store images
-_IMAGES="/var/lib/libvirt/images"
+_IMAGES_PATH="/var/lib/libvirt/images"
 
 _DISK_MAX_LIMIT_IN_GB=100
 _DISK_MIN_LIMIT_IN_GB=4
@@ -14,7 +14,7 @@ _MEMORY_LIMIT="$(awk '/MemTotal/ {printf( "%.2d\n", $2 / 1024 )}' /proc/meminfo)
 source "$(pwd)/enviroment.bash"
 
 # Location of cloud image
-_MACHINE_IMAGE="${_IMAGES}/${_ISO}" 
+_MACHINE_IMAGE="${_IMAGES_PATH}/${_ISO}" 
 
 _STORAGE_PATH="$PWD"
 _INSTANCE_PATH="${_STORAGE_PATH}/instances"
@@ -98,6 +98,82 @@ function _error() {
     fi
 }
 
+
+# Download images
+# Images disponiveis
+# Change image provide by ansible hosts
+
+function getImageFromRepo() {
+    local _FIND_IMAGE=${1}
+    local _SUPPORTED="ubuntu-19.10-server-cloudimg-amd64.img ubuntu-19.04-server-cloudimg-amd64.img ubuntu-18.04-server-cloudimg-amd64.img CentOS-6-x86_64-GenericCloud.qcow2 CentOS-7-x86_64-GenericCloud.qcow2"
+    
+    local _IMAGE=""
+    for _SUPPORT in ${_SUPPORTED}; do
+        # echo ${_SUPPORT} | egrep -iwo "${_FIND_IMAGE}[a-z]{,2}.*.(img|qcow|qcow2)$"
+        _FIND="$(echo ${_SUPPORT} | egrep -iwo "${_FIND_IMAGE}[a-z]{,2}.*.(img|qcow|qcow2)$")"
+        if [ -n "${_FIND}" ]; then
+            _IMAGE="${_FIND} ${_IMAGE} "
+        fi
+    done
+    local _IMAGE_COUNT=$(echo "${_IMAGE}" | wc -w)
+    if [ ${_IMAGE_COUNT} -gt 1 ]; then
+        _info "More than one image found, try to be more specific!!!" 
+        _info "${_IMAGE}"
+        exit 1;
+    fi
+
+    if [ ${_IMAGE_COUNT} -eq 0 ]; then
+        _info "Image not found!!!" 
+        exit 1;
+    fi
+    echo ${_IMAGES_PATH}
+    echo ${_IMAGE}
+    _MACHINE_IMAGE="${_IMAGES_PATH}/${_IMAGE}" 
+     echo ${_MACHINE_IMAGE}
+    if [ ! -f "${_MACHINE_IMAGE}" ]; then
+        downloadImageFromRepo ${_IMAGE}
+    fi
+  
+}
+
+function downloadImageFromRepo() {
+    local _FIND_IMAGE=${1}
+    local _SUPPORTED="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2
+    https://cloud.centos.org/centos/6/images/CentOS-6-x86_64-GenericCloud.qcow2
+    https://cloud-images.ubuntu.com/releases/disco/release/ubuntu-19.04-server-cloudimg-amd64.img
+    https://cloud-images.ubuntu.com/releases/bionic/release/ubuntu-18.04-server-cloudimg-amd64.img
+    https://cloud-images.ubuntu.com/releases/eoan/release/ubuntu-19.10-server-cloudimg-amd64.img"
+    
+    local _IMAGE=""
+    for _SUPPORT in ${_SUPPORTED}; do
+      
+        _FIND="$(echo ${_SUPPORT} | egrep -iwo "[a-z]{,2}.*.${_FIND_IMAGE}")"
+        if [ -n "${_FIND}" ]; then
+            _IMAGE="${_FIND} ${_IMAGE} "
+        fi
+    done
+    local _IMAGE_COUNT=$(echo "${_IMAGE}" | wc -w)
+    if [ ${_IMAGE_COUNT} -gt 1 ]; then
+        _info "More than one image found, try to be more specific!!!" 
+        _info "${_IMAGE}"
+        exit 1;
+    fi
+
+    if [ ${_IMAGE_COUNT} -eq 0 ]; then
+        _info "Image not found!!!" 
+        exit 1;
+    fi
+    if [ ! -f "${_MACHINE_IMAGE}" ]; then
+         _info "Image not found, ${_MACHINE_IMAGE} !!!" 
+        sudo wget --user-agent="Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.3) Gecko/2008092416 Firefox/3.0.3" --tries=100 -c "${_IMAGE// /}" -O "${_MACHINE_IMAGE// /}"
+        sudo chmod 777 "${_IMAGES_PATH}"
+    fi
+    
+}
+# getImageFromRepo "ubuntu-19.10"
+
+# exit
+
 # Validate informations
 function _validate_initial_configurations() {
     if [ ! -f "${_INVENTORIES_FILE}" ]; then
@@ -174,8 +250,7 @@ function _delete_machine() {
         _warning "Machine ${_MACHINE_NAME} not found!"
     fi
    
-}
- 
+} 
 
 
 function _delete_group_machines() {
@@ -209,8 +284,7 @@ function _validate_machine_name() {
     #Name validation
     [[ -z "${_MACHINE_NAME}" ]] && \
         _error "Plase informe the machine group or machine name.\n" && exit 1; 
-}
-
+} 
 
 function _validate_network_information() {
         
@@ -227,8 +301,7 @@ function _validate_network_information() {
     [[ -n "${_CHECK_BRIDGE_IP}" ]] && \
         _error "[ ${_MACHINE_NAME} ] IP '${_BRIDGE_IP}' for [ ${_INTERFACE} ] interface allready in uso.\n" && exit 1; 
         
-}
-
+} 
 
 function _validate_memory_information() {
         
@@ -283,12 +356,22 @@ function _validate_ssh_port() {
         _error "The ssh port from '${_MACHINE_NAME}' must be less than 10000.\n" && exit 1;
 }
 
+
 function _validate_parameters() {
         
         local VM_NAME=${1}
         local _MACHINE_NAME=${1} 
  
         _info "INSTANCE LOCALTION: ${_MACHINE_SOURCE_PATH}"
+
+        # Get Image
+        local _GET_IMAGE=$(_get_machine_atributes "${_MACHINE_NAME}" "ansible_image")
+        if [ -z ${_GET_IMAGE} ]; then
+            _GET_IMAGE="${_IMAGE}"
+        fi
+        getImageFromRepo ${_GET_IMAGE} 
+        _info "ISO IMAGE: ${_MACHINE_IMAGE}"
+        
 
         # Get network information
         local _USER=$(_get_machine_atributes "${_MACHINE_NAME}" "ansible_user")

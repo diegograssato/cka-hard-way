@@ -1,0 +1,57 @@
+---
+- name: Create the "{{commons.user}}" user
+  user: name={{commons.user}} append=yes state=present createhome=yes shell=/bin/bash
+
+# - name: Ensure SELinux is enforcing
+#   selinux:
+#     policy: targeted
+#     state: disabled
+
+- name: Creating MACAddressPolicy
+  copy:
+    content: |
+      [Link]
+      MACAddressPolicy=none
+    dest: /etc/systemd/network/99-default.link
+  notify: restart udevd 
+
+- name: Allow "{{commons.user}}" to have passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    line: '{{commons.user}} ALL=(ALL) NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+
+- name: Set up authorized keys for the ubuntu user
+  authorized_key: user={{commons.user}} key="{{item}}"
+  with_file:
+    - ~/.ssh/id_rsa.pub
+
+- name: Set up authorized keys for the root user
+  authorized_key: user=root key="{{item}}"
+  with_file:
+    - ~/.ssh/id_rsa.pub   
+
+- name: Add remote user to group docker
+  command: usermod -aG docker {{ansible_user}}
+  notify: restart docker
+
+
+- name: enable if command above does strange things (debug me)
+  command: systemctl enable docker
+
+- name: Disable swappiness and pass bridged IPv4 traffic to iptable's chains
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+  with_items:
+    - { name: 'vm.swappiness', value: '0' }
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name:  'net.ipv4.ip_forward', value: '1' }
+
+
+# This is needed based on Docker 1.13 update. Kubernetes and/or CNI could also fix this.  
+- name: Re-enable ipchains FORWARD
+  iptables:
+    chain: FORWARD
+    policy: ACCEPT  

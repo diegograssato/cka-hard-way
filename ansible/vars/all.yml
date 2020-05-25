@@ -2,7 +2,7 @@
 cluster:
     install: '1'
     packages: [vim, git, htop,zip, unzip, apt-transport-https, ca-certificates, curl, wget, gnupg2, software-properties-common,net-tools, ntpdate, git-core, jq]
-    workes: [python3-pip, virtualenv, python3-setuptools, docker-ce, net-tools, ntpdate, bridge-utils]
+    workers: [python3-pip, virtualenv, python3-setuptools, docker-ce, net-tools, ntpdate, bridge-utils,socat]
     masters: [bridge-utils]
     timezone: America/Sao_Paulo
     locale: pt_BR.UTF-8
@@ -12,6 +12,11 @@ cluster:
 CLUSETER_IP: 10.32.0.0/24
 
 APISERVER_SERVICE_IP: 10.32.0.1
+
+kubernetes_cluster_name: kubernetes-the-ansible-way
+kubernetes_cluster_cidr: 10.200.0.0/16
+kubernetes_service_cluster_iprange: 10.32.0.0/24
+kubernetes_cluster_dns: 10.32.0.10
 
 # Certificates directory
 PKI_DIR: '{{ playbook_dir }}/certificates'

@@ -1,0 +1,14 @@
+Host example1
+  Hostname example.com
+  User exampleuser
+  IdentityFile ~/.ssh/another_ssh.identity
+
+Host example2
+  Hostname example.com
+  User exampleuser
+  IdentityFile ~/.ssh/another_ssh.identity
+
+Host example3
+  Hostname example.com
+  User exampleuser
+  IdentityFile ~/.ssh/another_ssh.identity  

@@ -5,6 +5,7 @@ master-2 ansible_host=10.1.2.11 ansible_external_host=192.168.2.21 ansible_user=
 [workers]
 worker-1 ansible_host=10.1.2.20 ansible_external_host=192.168.2.22 ansible_user=ubuntu ansible_cpu=3 ansible_mem=2048 ansible_disk=20 ansible_password=root ansible_port=22
 worker-2 ansible_host=10.1.2.21 ansible_external_host=192.168.2.23 ansible_user=ubuntu ansible_cpu=3 ansible_mem=2048 ansible_disk=20 ansible_password=root ansible_port=22
+worker-3 ansible_host=10.1.2.23 ansible_external_host=192.168.2.24 ansible_user=ubuntu ansible_cpu=4 ansible_mem=2048 ansible_disk=20 ansible_password=root ansible_port=22 ansible_image=CentOS-7
 
 [loadbalancer]
 lb ansible_host=10.1.2.100 ansible_external_host=192.168.2.100 ansible_user=ubuntu ansible_cpu=3 ansible_mem=2048 ansible_disk=20 ansible_password=root ansible_port=22
@@ -13,6 +14,7 @@ lb ansible_host=10.1.2.100 ansible_external_host=192.168.2.100 ansible_user=ubun
 [cluster:children]
 masters
 workers
+loadbalancer
 
 [management:children]
 masters

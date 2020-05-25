@@ -1,0 +1,44 @@
+---
+commons:
+    install: '1'
+    timezone: America/Sao_Paulo
+    locale: pt_BR.UTF-8
+    packages: [docker-ce, vim, git, htop,zip, unzip, apt-transport-https, ca-certificates, curl, wget, gnupg2, software-properties-common,net-tools, ntpdate, git-core, jq, bridge-utils,socat,python3-pip, virtualenv, python3-setuptools, kubelet, kubeadm ]    
+    user: ubuntu 
+
+# Kubernetes
+kube_version: v1.16.3
+
+service_cidr: "10.96.0.0/12"
+pod_network_cidr: "10.244.0.0/16"
+
+# Network implementation('flannel', 'calico', 'canal')
+network: flannel
+
+# Change this to an appropriate interface, preferably a private network.
+# For example, on DigitalOcean, you would use eth1 as that is the default private network interface.
+network_interface: "eth0"
+
+enable_dashboard: yes
+ 
+# A list of insecure registries you might need to define
+# insecure_registries: []
+insecure_registries: ['gcr.io']
+
+systemd_dir: /lib/systemd/system
+system_env_dir: /etc/sysconfig
+network_dir: /etc/kubernetes/network
+kubeadmin_config: /etc/kubernetes/admin.conf
+kube_addon_dir: /etc/kubernetes/addon
+
+# Additional feature to install
+additional_features:
+  helm: true
+  metallb: true
+  healthcheck: false
+
+master_ip: "{{ hostvars[groups['masters'][0]]['ansible_default_ipv4'].address | default(groups['masters'][0]) }}"
+
+
+# temporary directory used by additional features
+tmp_dir: /tmp/kubeadm-ansible-files

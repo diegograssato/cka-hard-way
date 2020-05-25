@@ -1,0 +1,86 @@
+---
+- name: Disable system swap
+  shell: "swapoff -a"
+
+- name: Remove current swaps from fstab
+  lineinfile:
+    dest: /etc/fstab
+    regexp: '(?i)^([^#][\S]+\s+(none|swap)\s+swap.*)'
+    line: '# \1'
+    backrefs: yes
+    state: present 
+
+# application tasks to be customized and to run after the main provision
+- name: Add IP address of all hosts to all hosts
+  template: src=templates/hosts.j2 dest=/etc/hosts force=yes backup=yes owner=root group=root mode="0644"
+
+- name: Configure the timezone
+  become: yes
+  template: src=timezone.j2 dest=/etc/timezone backup=yes owner=root group=root mode="0644"
+
+- name: Configure locatime
+  become: yes
+  file: src=/usr/share/zoneinfo/{{commons.timezone}} dest=/etc/localtime state=link force=yes backup=yes owner=root group=root mode="0644"
+
+- name: Set default system language pack
+  shell: locale-gen {{commons.locale}}
+  become: yes
+
+- name: Check if Docker is installed
+  command: systemctl status docker
+  register: docker_check
+  ignore_errors: yes
+  
+
+- name: Install aptitude using apt
+  apt: name=aptitude state=latest update_cache=yes force_apt_get=yes
+
+- name: Download the Docker installer
+  get_url:
+    url: https://get.docker.com/
+    dest: /root/install_docker.sh
+    mode: 0700
+  when: docker_check.stderr.find('service could not be found') != -1
+
+- name: Install Docker
+  shell: /root/install_docker.sh
+  when: docker_check.stderr.find('service could not be found') != -1
+
+- name: Remove the Docker installer file.
+  file:
+    state: absent
+    path: /root/install_docker.sh
+
+
+# - name: Update apt and install dependencies
+#   become: yes
+#   apt: name={{ item }} state=latest update_cache=yes
+#   loop: "{{commons.packages }}"
+ 
+- name: Install pre-requisite packages
+  apt: name={{ commons.packages }} state=latest  update_cache=yes
+  when: commons.install == '1'
+
+- name: Install Docker Module for Python
+  pip:
+    name: docker
+
+
+- name: "Check if known_hosts contains server's fingerprint"
+  command: "ssh-keyscan {{item}}"
+  register: known_host_keys
+  loop: "{{ansible_play_batch}}"
+
+
+- name: Fetch remote ssh key
+  known_hosts:
+    name: "{{item.item}}"
+    key: "{{item.stdout}}"
+    path: ~/.ssh/known_hosts
+    state: present
+  loop: "{{known_host_keys.results}}"
+  
+ 
+ 
+- include: configure.yml
+  when: docker_check.stderr.find('service could not be found') != -1

@@ -1,0 +1,27 @@
+---
+- name: Verifica se o Docker Swarm está habilitado.
+  shell: docker info
+  changed_when: False
+  register: docker_info
+
+- name: Pega o token do worker.
+  shell: docker swarm join-token -q worker
+  changed_when: False
+  register: docker_worker_token
+  delegate_to: "{{ groups['managers'][0] }}"
+  delegate_facts: true
+  when: "docker_info.stdout.find('Swarm: active') == -1
+      and 'workers' in group_names"
+
+
+- debug: msg="{{ docker_worker_token }}"   
+
+- name: Adiciona o servidor de Worker no cluster.
+  shell: docker swarm join
+        --token "{{ docker_worker_token.stdout }}"
+        {{ docker_swarm_manager_ip }}:{{ docker_swarm_manager_port }}
+  changed_when: false
+  when: "docker_info.stdout.find('Swarm: active') == -1
+    and docker_info.stdout.find('Swarm: pending') == -1
+    and 'workers' in group_names
+    and 'managers' not in group_names"
